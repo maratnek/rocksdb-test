@@ -114,53 +114,194 @@ int main() {
 //    end = std::chrono::steady_clock::now();
 //    std::cout << "Write Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000'000.0 << " sec" << std::endl;
 
+//    using TLoadFunc = std::function<void(size_t, size_t)>;
+//    auto l_thread_data = [&](TLoadFunc func_load, size_t add_threads = 0) {
+//        auto block_count = count;
+//        std::vector<std::future<void>> v_futures;
+//        /// create several transactions
+//        auto conc_threads = std::thread::hardware_concurrency();
+//        conc_threads += add_threads;
+//        std::cout << "Real thread count: " << conc_threads << std::endl;
+//        auto interval = block_count / conc_threads;
+//        for (size_t ith = 0; ith < conc_threads; ++ith)
+//        {
+//            v_futures.emplace_back(std::move(std::async(std::launch::async, [=, &func_load]()
+//            {
+//                size_t i = ith * interval;
+//                auto max_count = i + interval;
+//                std::cout << "Iter threads: " << ith << " Interval start: " << i << " Interval end: " << max_count << std::endl;
+//                func_load(i, max_count);
+//            })));
+//        }
+//        std::cout << "Wait futures" << std::endl;
+//        for (auto &it_future : v_futures)
+//        {
+//            it_future.get();
+//        }
+//
+//    };
+//
+//    std::cout << "Write to db: " << count << " values." << std::endl;
+//
+//    start = std::chrono::steady_clock::now();
+//    l_thread_data([&v_r_str, &db](size_t i, size_t max_count){
+//        WriteBatch batch;
+//        Status s;
+//        auto it_count = 0;
+//        auto batch_size = 10000;
+//        auto commont_count = 0;
+//
+//        for (; i < max_count; i++)
+//        {
+//            ++commont_count;
+//            if (it_count++ < batch_size)
+//            {
+//                batch.Put(std::to_string(i), v_r_str[i]);
+//            }
+//            else
+//            {
+//                s = db->Write(WriteOptions(), &batch);
+//                assert(s.ok());
+//                batch.Clear();
+//                it_count = 0;
+//            }
+//        }
+//        if (batch.Count())
+//        {
+//            s = db->Write(WriteOptions(), &batch);
+//            assert(s.ok());
+//            batch.Clear();
+//        }
+//        atom_count += commont_count;
+//        std::cout << "Common count " << commont_count << std::endl;
+//    }, 0);
+//    end = std::chrono::steady_clock::now();
+//
+//    std::cout << "Common count " << atom_count << std::endl;
+//    std::cout << "Write Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000'000.0 << " sec" << std::endl;
 
-    auto l_write_batch_data = [&]() {
+
+//    auto l_write_batch_data = [&]() {
+//        auto block_count = count;
+//        std::vector<std::future<void>> v_futures;
+//        /// create several transactions
+//        auto conc_threads = std::thread::hardware_concurrency();
+////        conc_threads += 8;
+//        std::cout << "Real thread count: " << conc_threads << std::endl;
+//        auto interval = block_count / conc_threads;
+//        for (size_t ith = 0; ith < conc_threads; ++ith)
+//        {
+//            v_futures.emplace_back(std::move(std::async(std::launch::async, [=, &v_r_str]()
+//            {
+//                size_t i = ith * interval;
+//                auto max_count = i + interval;
+//                std::cout << "Iter threads: " << ith << " Interval start: " << i << " Interval end: " << max_count << std::endl;
+//
+//                WriteBatch batch;
+//                Status s;
+//                auto it_count = 0;
+//                auto batch_size = 10000;
+//                auto commont_count = 0;
+//
+//                for (; i < max_count; i++)
+//                {
+//                    ++commont_count;
+//                    if (it_count++ < batch_size)
+//                    {
+//                        batch.Put(std::to_string(i), v_r_str[i]);
+//                    }
+//                    else
+//                    {
+//                        {
+//                            std::lock_guard<std::mutex> lock(mutex_gener_add_block);
+//                            s = db->Write(WriteOptions(), &batch);
+//                        }
+//                        assert(s.ok());
+//                        batch.Clear();
+//                        it_count = 0;
+//                    }
+//                }
+//                if (batch.Count())
+//                {
+//                    {
+//                        std::lock_guard<std::mutex> lock(mutex_gener_add_block);
+//                        s = db->Write(WriteOptions(), &batch);
+//                    }
+//                    assert(s.ok());
+//                    batch.Clear();
+//                }
+//
+//                atom_count += commont_count;
+//                std::cout << "Common count " << commont_count << std::endl;
+//            })));
+//        }
+//        std::cout << "Wait futures" << std::endl;
+//        for (auto &it_future : v_futures)
+//        {
+//            it_future.get();
+//        }
+//
+//    };
+//    std::cout << "Write to db: " << count << " values." << std::endl;
+//
+//    start = std::chrono::steady_clock::now();
+//    l_write_batch_data();
+//    end = std::chrono::steady_clock::now();
+//
+//    std::cout << "Common count " << atom_count << std::endl;
+//    std::cout << "Write Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000'000.0 << " sec" << std::endl;
+
+
+//    atom_count = 0;
+//    start = std::chrono::steady_clock::now();
+//    l_thread_data([&v_r_str, &db](size_t i, size_t max_count){
+//        std::string value;
+//    Status s;
+//        auto comm_thread_count = 0;
+//        for (; i < max_count; i++)
+//        {
+//            s = db->Get(ReadOptions(), std::to_string(i), &value);
+//            if (!s.ok())
+//                std::cout << "Not OK " << std::to_string(i) << " " << value << " - " << v_r_str[i] << std::endl;
+//            assert(s.ok());
+//            assert(value == v_r_str[i]);
+//            ++comm_thread_count;
+//        }
+//        atom_count += comm_thread_count;
+//    }, 0);
+//    end = std::chrono::steady_clock::now();
+//    std::cout << "Common count " << atom_count << std::endl;
+//    std::cout << "Read Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000'000.0 << " sec" << std::endl;
+
+    auto l_read_batch_data = [&]() {
         auto block_count = count;
         std::vector<std::future<void>> v_futures;
         /// create several transactions
         auto conc_threads = std::thread::hardware_concurrency();
-        conc_threads += 8;
+//        conc_threads += 8;
         std::cout << "Real thread count: " << conc_threads << std::endl;
         auto interval = block_count / conc_threads;
         for (size_t ith = 0; ith < conc_threads; ++ith)
         {
-            v_futures.emplace_back(std::move(std::async(std::launch::async, [=, &v_r_str, &atom_count]()
+            v_futures.emplace_back(std::move(std::async(std::launch::async, [=, &v_r_str]()
             {
                 size_t i = ith * interval;
                 auto max_count = i + interval;
                 std::cout << "Iter threads: " << ith << " Interval start: " << i << " Interval end: " << max_count << std::endl;
 
-                WriteBatch batch;
                 Status s;
-                auto it_count = 0;
-                auto batch_size = 10000;
                 auto commont_count = 0;
 
                 for (; i < max_count; i++)
                 {
                     ++commont_count;
-                    if (it_count++ < batch_size)
-                    {
-                        batch.Put(std::to_string(i), v_r_str[i]);
-                    }
-                    else
-                    {
-                        s = db->Write(WriteOptions(), &batch);
-                        assert(s.ok());
-                        batch.Clear();
-                        it_count = 0;
-                    }
-                }
-                if (batch.Count())
-                {
-                    s = db->Write(WriteOptions(), &batch);
+                    std::string value;
+                    s = db->Get(ReadOptions(), std::to_string(i), &value);
+                    if (!s.ok())
+                        std::cout << "Not OK " << std::to_string(i) << " " << value << " - " << v_r_str[i] << std::endl;
                     assert(s.ok());
-                    batch.Clear();
+                    assert(value == v_r_str[i]);
                 }
-
-//                    Status s = db->Put(WriteOptions(), std::to_string(i), v_r_str[i]);
-//                    assert(s.ok());
                 atom_count += commont_count;
                 std::cout << "Common count " << commont_count << std::endl;
             })));
@@ -172,14 +313,15 @@ int main() {
         }
 
     };
-    std::cout << "Write to db: " << count << " values." << std::endl;
+    std::cout << "Read to db: " << count << " values." << std::endl;
 
+    atom_count = 0;
     start = std::chrono::steady_clock::now();
-    l_write_batch_data();
+    l_read_batch_data();
     end = std::chrono::steady_clock::now();
 
     std::cout << "Common count " << atom_count << std::endl;
-    std::cout << "Write Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000'000.0 << " sec" << std::endl;
+    std::cout << "Read Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000'000.0 << " sec" << std::endl;
 
 //    std::string value;
 //    start = std::chrono::steady_clock::now();
